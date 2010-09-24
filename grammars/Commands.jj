@@ -1,0 +1,212 @@
+options { 
+	STATIC = false;
+}
+
+PARSER_BEGIN(CommandParser) 
+
+import java.util.*;
+import java.io.*;
+
+public class CommandParser { 
+	public static void main(String[] args) throws ParseException { 
+		CommandParser parser = null; 
+		if(args.length > 0) { 
+			parser = new CommandParser(new StringReader(args[0]));
+		} else { 
+			parser = new CommandParser(System.in);
+		}
+		System.out.println(parser.Command().toString());
+	}
+}
+
+PARSER_END(CommandParser) 
+
+TOKEN: {
+	<DIGIT: ["0","1","2","3","4","5","6","7","8","9"]> 
+	| <ESCAPE: "\\" >
+	| <NEWLINE: ("\n") | ("\r\n")>
+	| <LETTER: ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","R","S","T","U","V","W","X","Y","Z"]>
+	| <TAB: "\t">
+	| <SPACE: " ">
+	| <PUNCT: ["~","^","&","*","(",")","+","=","`","{","}","[","]","|",";","'",",",".","/"] >
+}
+
+
+void Command() : {}
+{
+	( ws() )? Generate() Method()
+}
+
+void Generate() : {}
+{
+	Singleton()
+	| All()
+	| Get()
+}
+
+void Method() : {}
+{
+	( ws() )? Transform() ( ws() Transform() )*
+}
+
+void Singleton() : {}
+{
+	"@" ws() Resource()
+}
+
+void All() : {}
+{
+	"%"
+}
+
+void Get() : {}
+{
+	"#" Variable()
+}
+
+void Transform() : {}
+{
+	Choose()
+	| Follow()
+	| ReverseFollow()
+	| Filter()
+	| SideEffectTransform()
+}
+
+void Choose() : {}
+{
+	"!" NumberLiteral()  
+}
+
+void Follow() : {}
+{
+	">" ws() Resource()
+}
+
+void ReverseFollow() : {}
+{
+	"<" ws() Resource()
+}
+
+void Filter() : {}
+{
+	"?" ws() Resource() ws() ( Resource() | Literal() )
+}
+
+void SideEffectTransform() : {}
+{
+	Store()
+	| List()
+	| PrettyPrint()
+	| Count()
+}
+
+void Store() : {}
+{
+	"$" Variable()
+}
+
+void List() : {}
+{
+	"ls"
+}
+
+void PrettyPrint() : {}
+{
+	"pp"
+}
+
+void Count() : {}
+{
+	"count"
+}
+
+void ws() : {} { ( <SPACE> )+ }
+
+void Variable() : {}
+{
+	<LETTER> ( <LETTER> | <DIGIT> )*
+}
+
+void Literal() : { } 
+{
+	UndefinedLiteral() 
+	| BooleanLiteral()
+	| NumberLiteral()
+	| QuotedStringLiteral()
+}
+
+void Resource() : {}
+{
+	URILiteral()
+	| NamespaceURI()
+}
+
+void UndefinedLiteral() : {}
+{
+	"undefined"
+}
+
+void BooleanLiteral() : {}
+{
+	"true" 
+	| "false"
+}
+
+void NumberLiteral() : {}
+{
+	( <DIGIT> )+ 
+}
+
+void QuotedStringLiteral() : {}
+{
+	"\"" 
+	( 
+		<LETTER>
+		| <DIGIT> 
+		| <PUNCT>
+		| "!" | "#" | "$" | "-" | "%" | ":" | "<" | ">" | "?" | "@" | "_"
+		| <TAB> 
+		| <ESCAPE> ( "\"" | <ESCAPE> )
+		| <SPACE>
+	)*
+	"\""
+}
+
+void NamespaceURI() : {}
+{
+	Prefix() ":" Suffix()
+}
+
+void Prefix() : {}
+{
+	( "_" | "-" | <LETTER> ) ( "_" | "-" | <LETTER> | <DIGIT>  )* 
+}
+
+void Suffix() : {}
+{
+	<LETTER> 
+	( 
+		<LETTER> 
+		| <DIGIT> 
+	)*
+}
+
+void URI() : {}
+{
+	<LETTER> 
+	( 
+		LOOKAHEAD(2)
+		<LETTER> 
+		| <DIGIT> 
+		| <PUNCT> 
+		| "!" | "#" | "-" | "%" | ":" | "?" | "@" | "_" 
+	)*
+}
+
+
+void URILiteral() : {}
+{
+	"<" URI() ">"
+}
+
