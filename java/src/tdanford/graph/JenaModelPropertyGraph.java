@@ -1,5 +1,6 @@
 package tdanford.graph;
 
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -73,6 +74,12 @@ public class JenaModelPropertyGraph implements PropertyGraph {
 	public boolean hasReverse(Identifier id, Value value) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public Iterator<Identifier> allIdentifiers() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

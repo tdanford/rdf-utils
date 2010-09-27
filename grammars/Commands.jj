@@ -19,18 +19,82 @@ public class CommandParser {
 	}
 }
 
+class Command {
+
+	private Generator generator;
+	private Transform[] transforms;
+	
+	public Command(Generator g, Collection<Transform> ts) {
+		if(g == null) { throw new IllegalArgumentException("null Generator argument"); }
+		generator = g;
+		transforms = ts.toArray(new Transform[0]);
+	}
+	
+	public Generator getGenerator() { return generator; }
+	public int length() { return transforms.length; }
+	public Transform getTransform(int i) { return transforms[i]; }
+}
+
+class Expression { 
+	
+	public String key;
+	public Expression[] args;
+	
+	public Expression(String k, Expression... as) { 
+		key = k;
+		args = as.clone();
+	}
+	
+	public Expression(String k, Collection<Expression> as) {  
+		key = k;
+		args = as.toArray(new Expression[0]);
+	}
+}
+
+class Generator extends Expression { 
+	public Generator(String k, Expression... as) { 
+		super(k, as);
+	}
+}
+
+class Transform extends Expression {
+	public Transform(String k, Expression... as) { 
+		super(k, as);
+	}
+}
+
+class Literal extends Expression { 
+	private Object value; 
+
+	public Object getValue() { return value; }
+
+	public Literal(String key, Object v) { 
+		super(key, String.valueOf(v)); 
+		value = v; 
+	}
+}
+
 PARSER_END(CommandParser) 
 
 TOKEN: {
 	<DIGIT: ["0","1","2","3","4","5","6","7","8","9"]> 
 	| <ESCAPE: "\\" >
 	| <NEWLINE: ("\n") | ("\r\n")>
-	| <LETTER: ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","R","S","T","U","V","W","X","Y","Z"]>
+	| <LETTER: ["a"-"z","A"-"Z"]>
 	| <TAB: "\t">
 	| <SPACE: " ">
 	| <PUNCT: ["~","^","&","*","(",")","+","=","`","{","}","[","]","|",";","'",",",".","/"] >
+	| <DASH: ["-","_"]>
+	| <LEFTCOMPARE: "<">
+	| <RIGHTCOMPARE: ">">
+	| <BANG: "!">
+	| <HASH: "#">
+	| <AT: "@">
+	| <PCT: "%">
+	| <DOLLAR: "$"> 
+	| <QUESTION: "?">
+	| <COLON: ":"> 
 }
-
 
 void Command() : {}
 {
@@ -51,20 +115,20 @@ void Method() : {}
 
 void Singleton() : {}
 {
-	"@" ws() Resource()
+	<AT> ws() Resource()
 }
 
 void All() : {}
 {
-	"%"
+	<PCT>	
 }
 
 void Get() : {}
 {
-	"#" Variable()
+	<HASH> Variable()
 }
 
-void Transform() : {}
+Transform Transform() : { Transform t; }
 {
 	Choose()
 	| Follow()
@@ -73,24 +137,25 @@ void Transform() : {}
 	| SideEffectTransform()
 }
 
-void Choose() : {}
+Transform Choose() : { Number n; }
 {
-	"!" NumberLiteral()  
+	( <BANG> n = NumberLiteral() )
+	{ return new Transform("choose", n); }
 }
 
 void Follow() : {}
 {
-	">" ws() Resource()
+	<RIGHTCOMPARE> ws() Resource()
 }
 
 void ReverseFollow() : {}
 {
-	"<" ws() Resource()
+	<LEFTCOMPARE>  ws() Resource()
 }
 
 void Filter() : {}
 {
-	"?" ws() Resource() ws() ( Resource() | Literal() )
+	<QUESTION> ws() Resource() ws() ( Resource() | Literal() )
 }
 
 void SideEffectTransform() : {}
@@ -103,7 +168,7 @@ void SideEffectTransform() : {}
 
 void Store() : {}
 {
-	"$" Variable()
+	<DOLLAR> Variable()
 }
 
 void List() : {}
@@ -123,23 +188,31 @@ void Count() : {}
 
 void ws() : {} { ( <SPACE> )+ }
 
-void Variable() : {}
+String Variable() : { Token t; String s; }
 {
-	<LETTER> ( <LETTER> | <DIGIT> )*
+	( 
+		t = <LETTER> 
+		s = alphaNumeric()
+	)
+
+	{ return t.image + s; }
 }
 
-void Literal() : { } 
+Literal Literal() : { Literal l = null; Object v; } 
 {
-	UndefinedLiteral() 
-	| BooleanLiteral()
-	| NumberLiteral()
-	| QuotedStringLiteral()
+	UndefinedLiteral()  { l = new Literal("undefined", null); }
+	| v = BooleanLiteral() { l = new Literal("boolean", v); }
+	| v = NumberLiteral() { l = new Literal("number", v); }
+	| v = QuotedStringLiteral() { l = new Literal("string", v); }
 }
 
-void Resource() : {}
+Literal Resource() : { Literal l; String s; }
 {
-	URILiteral()
-	| NamespaceURI()
+	( 	
+		s = URILiteral() { l = new Literal("uri", s); }
+		| s = NamespaceURI() { l = new Literal("namespace", s); }
+	)
+	{ return l; }
 }
 
 void UndefinedLiteral() : {}
@@ -147,66 +220,103 @@ void UndefinedLiteral() : {}
 	"undefined"
 }
 
-void BooleanLiteral() : {}
+Boolean BooleanLiteral() : { boolean b; }
 {
-	"true" 
-	| "false"
+	"true"  { b = true; }
+	| "false" { b = false; }
+
+	{ return b; }
 }
 
-void NumberLiteral() : {}
+Number NumberLiteral() : { Token t; StringBuilder sb = new StringBuilder(); }
 {
-	( <DIGIT> )+ 
+	( t = <DIGIT> { sb.append(t.image); } )+ 
+
+	{ return Integer.parseInt(sb.toString()); }
 }
 
-void QuotedStringLiteral() : {}
+String QuotedStringLiteral() : { String s; Token t; StringBuilder sb = new StringBuilder();  }
 {
 	"\"" 
 	( 
-		<LETTER>
-		| <DIGIT> 
-		| <PUNCT>
-		| "!" | "#" | "$" | "-" | "%" | ":" | "<" | ">" | "?" | "@" | "_"
-		| <TAB> 
-		| <ESCAPE> ( "\"" | <ESCAPE> )
-		| <SPACE>
+		t = <LETTER> { sb.append(t.image); }
+		| t = <DIGIT>  { sb.append(t.image); }
+		| t = <PUNCT> { sb.append(t.image); }
+		| t = <COLON>  { sb.append(t.image); }
+		| t = <QUESTION> { sb.append(t.image); }
+		| t = <DOLLAR>{ sb.append(t.image); }
+		| t = <DASH>{ sb.append(t.image); }
+		| t = <PCT>{ sb.append(t.image); }
+		| t = <AT>{ sb.append(t.image); }
+		| t = <HASH>{ sb.append(t.image); }
+		| t = <BANG> { sb.append(t.image); }
+		| t = <TAB> { sb.append(t.image); }
+		| t = <LEFTCOMPARE> { sb.append(t.image); }
+		| t = <RIGHTCOMPARE> { sb.append(t.image); }
+		| <ESCAPE> ( "\"" { sb.append("\""); }  | <ESCAPE> { sb.append("\\"); } )
+		| t = <SPACE> { sb.append(t.image); }
 	)*
 	"\""
+
+	{ return sb.toString(); }
 }
 
-void NamespaceURI() : {}
+String NamespaceURI() : { String[] pair = new String[2]; }
 {
-	Prefix() ":" Suffix()
+	pair[0] = Prefix() 
+	<COLON>	
+	pair[1] = Suffix()
+
+	{ return pair[0] + ":" + pair[1]; }
 }
 
-void Prefix() : {}
+String Prefix() : { Token t; StringBuilder sb = new StringBuilder(); }
 {
-	( "_" | "-" | <LETTER> ) ( "_" | "-" | <LETTER> | <DIGIT>  )* 
-}
-
-void Suffix() : {}
-{
-	<LETTER> 
 	( 
-		<LETTER> 
-		| <DIGIT> 
-	)*
+		t = <DASH> { sb.append(t.image); } 
+		| t = <LETTER> { sb.append(t.image); } 
+	) 
+	( <DASH> | <LETTER> | <DIGIT>  )* 
 }
 
-void URI() : {}
+String Suffix() : { Token t; String s; }
 {
-	<LETTER> 
+	t = <LETTER>  
+	s = alphaNumeric() 
+	{ return t.image + s; }
+}
+
+String alphaNumeric() : { StringBuilder sb = new StringBuilder(); Token t;  } 
+{
+	( 
+		t = <LETTER> { sb.append(t.image); }
+		| t = <DIGIT> { sb.append(t.image); }
+	)* 
+	{ return sb.toString(); }
+}
+
+String URI() : { StringBuilder sb = new StringBuilder(); }
+{
+	t = <LETTER>  { sb.append(t.image); }
 	( 
 		LOOKAHEAD(2)
-		<LETTER> 
+		t = <LETTER> 
 		| <DIGIT> 
 		| <PUNCT> 
-		| "!" | "#" | "-" | "%" | ":" | "?" | "@" | "_" 
+		| <COLON> 
+		| <QUESTION>
+		| <DASH>
+		| <PCT>
+		| <AT>
+		| <HASH>
+		| <BANG> 
 	)*
+
+	{ return sb.toString(); }
 }
 
-
-void URILiteral() : {}
+String URILiteral() : { String s; }
 {
-	"<" URI() ">"
+	<LEFTCOMPARE>  s = URI() <RIGHTCOMPARE> { return s; }
 }
 
