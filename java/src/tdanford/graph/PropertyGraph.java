@@ -8,7 +8,7 @@ public interface PropertyGraph {
 	public boolean hasIdentifier(Identifier id);
 	public Set<Identifier> followForward(Identifier id, Identifier prop);
 	public Set<Identifier> followReverse(Identifier id, Identifier prop);
-	public boolean hasForward(Identifier id, Value value);
-	public boolean hasReverse(Identifier id, Value value);
+	public boolean hasForward(Identifier source, Value target);
+	public boolean hasReverse(Identifier target, Identifier source);
 }
 

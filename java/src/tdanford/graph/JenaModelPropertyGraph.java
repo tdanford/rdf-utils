@@ -6,6 +6,7 @@ import java.util.TreeSet;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.ResIterator;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
@@ -16,8 +17,6 @@ public class JenaModelPropertyGraph implements PropertyGraph {
 	
 	public JenaModelPropertyGraph(Model m) { 
 		model = m;
-		
-	
 	}
 	
 	public Resource asResource(Identifier id) { 
@@ -30,6 +29,39 @@ public class JenaModelPropertyGraph implements PropertyGraph {
 	
 	public Identifier asIdentifier(Resource rec) { 
 		return new Identifier(rec.getURI());
+	}
+
+	private class IdentifierIterator implements Iterator<Identifier> {
+		
+		private ResIterator itr;
+		
+		public IdentifierIterator(ResIterator ri) { 
+			itr = ri;
+		}
+
+		public boolean hasNext() {
+			return itr != null && itr.hasNext();
+		}
+
+		public Identifier next() {
+			Identifier id = asIdentifier(itr.next());
+			if(!itr.hasNext()) { 
+				close();
+			}
+			return id;
+		}
+		
+		public void close() { 
+			if(itr != null) { 
+				itr.close();
+				itr = null;
+			}
+		}
+
+		public void remove() {
+			throw new UnsupportedOperationException();
+		} 
+		
 	}
 
 	public Set<Identifier> followForward(Identifier id, Identifier prop) {
@@ -52,34 +84,52 @@ public class JenaModelPropertyGraph implements PropertyGraph {
 		}
 	}
 
-	@Override
 	public Set<Identifier> followReverse(Identifier id, Identifier prop) {
-		// TODO Auto-generated method stub
-		return null;
+		Resource start = asResource(id);
+		Property property = asProperty(prop);
+		StmtIterator itr = model.listStatements(null, property, start);
+		try {
+			TreeSet<Identifier> ids = new TreeSet<Identifier>();
+			
+			while(itr.hasNext()) { 
+				Statement stmt = itr.next();
+				Resource object = stmt.getSubject();
+				ids.add(asIdentifier(object));
+			}
+			
+			return ids;
+			
+		} finally { 
+			itr.close();
+		}
 	}
 
-	@Override
 	public boolean hasForward(Identifier id, Value value) {
-		// TODO Auto-generated method stub
-		return false;
+		Resource start = asResource(id);
+		if(value instanceof Identifier) { 
+			Resource target = asResource((Identifier)value);
+			return model.contains(start, null, target);
+		} else if (value instanceof Literal) {
+			Literal target = (Literal)value;
+			return model.contains(start, null, target.toString());
+		} else { 
+			return false;
+		}
 	}
 
-	@Override
 	public boolean hasIdentifier(Identifier id) {
-		// TODO Auto-generated method stub
-		return false;
+		Resource start = asResource(id);
+		return model.containsResource(start); 
 	}
 
-	@Override
-	public boolean hasReverse(Identifier id, Value value) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean hasReverse(Identifier target, Identifier source) {
+		Resource start = asResource(source);
+		Resource end = asResource(target);
+		return model.contains(start, null, end);
 	}
 
-	@Override
 	public Iterator<Identifier> allIdentifiers() {
-		// TODO Auto-generated method stub
-		return null;
+		return new IdentifierIterator(model.listSubjects());
 	}
 
 }
