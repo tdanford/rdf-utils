@@ -3,13 +3,14 @@
 		Build file for rdf-utils.
     </description>
 
-	<property name="project"  location="rdf-utils"/>
+	<property name="project"  value="rdf-utils"/>
 	<property name="dist"  location="dist"/>
 	<property name="java"  location="java"/>
 	<property name="src" location="${java}/src"/>
 	<property name="build" location="${java}/build"/>
-	<property name="lib"  location="lib"/>
+	<property name="lib"  location="${java}/lib"/>
 	<property name="docs" location="${dist}/docs" />
+	<property name="latestjar" location="${dist}/lib/${project}.jar" />
 
 	<target name="init">
 		<tstamp/>
@@ -40,9 +41,10 @@
 
 	<target name="jar" depends="build" description="generate the jar file" >
 		<mkdir dir="${dist}/lib"/>
+		<property name="jarpath" location="${dist}/lib/${project}-${DSTAMP}.jar" />
 		<!-- <jar jarfile="${dist}/lib/${project}-${DSTAMP}.jar" basedir="${build}"/> -->
 
-		<jar destfile="${dist}/lib/${project}-${DSTAMP}.jar">
+		<jar destfile="${jarpath}">
 			<fileset dir="${build}/" />
 			<restrict>
 				<name name="**/*.class"/>
@@ -52,10 +54,11 @@
 					</zips>
 				</archives>
 			</restrict>
-			<manifest>
+			<manifest> 
 				<!-- <attribute name="Main-Class" value="MAIN-CLASS"/> -->
 			</manifest>
 		</jar>
+		<copy file="${jarpath}" tofile="${latestjar}" />
 	</target>
 
 	<target name="clean" description="clean up" >
