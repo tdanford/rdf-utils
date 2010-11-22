@@ -1,14 +1,18 @@
 package tdanford.db;
 
-public interface Op extends DbItr {
+public interface Op {
 	
 	public int length();
 	public Op getSubOp(int i);
 	public void setSubOp(int i, Op j);
 	
+	public Schema schema();
+	
+	public DbItr evalOp();
+	
 	public static abstract class Leaf implements Op {
 		public Op getSubOp(int i) {
-			return null;
+			throw new IllegalArgumentException(String.valueOf(i));
 		}
 
 		public int length() {
@@ -16,7 +20,7 @@ public interface Op extends DbItr {
 		}
 
 		public void setSubOp(int i, Op j) {
+			throw new IllegalArgumentException(String.valueOf(i));
 		}
-
 	}
 }

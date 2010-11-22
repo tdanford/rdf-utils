@@ -3,7 +3,7 @@ package tdanford.db;
 import java.util.*;
 import java.io.*;
 
-public class FileScan implements Scanner {
+public class FileScan extends Op.Leaf {
 	
 	private File file;
 	private Schema schema;
@@ -12,8 +12,10 @@ public class FileScan implements Scanner {
 		file = f;
 		schema = s;
 	}
+	
+	public DbItr evalOp() { return scan(); }
 
-	public Op scan() {
+	public DbItr scan() {
 		try {
 			return new FileScanner();
 		} catch (IOException e) {
@@ -25,7 +27,7 @@ public class FileScan implements Scanner {
 		return schema;
 	}
 
-	private class FileScanner extends Op.Leaf {
+	private class FileScanner implements DbItr {
 		
 		private BufferedReader lineReader;
 		private Tuple nextTuple;
@@ -42,6 +44,16 @@ public class FileScan implements Scanner {
 				String[] array = line.split("|");
 				Tuple t = new Tuple(array, schema);
 				nextTuple = t;
+			}
+		}
+
+		public void reset() { 
+			try { 
+				if(lineReader != null) { lineReader.close(); } 
+				lineReader = new BufferedReader(new FileReader(file));
+				readToNextTuple();
+			} catch(IOException e) { 
+				throw new IllegalStateException(e);
 			}
 		}
 
