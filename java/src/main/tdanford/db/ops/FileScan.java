@@ -1,7 +1,12 @@
-package tdanford.db;
+package tdanford.db.ops;
 
 import java.util.*;
 import java.io.*;
+
+import tdanford.db.CostModel;
+import tdanford.db.Schema;
+import tdanford.db.Tuple;
+import tdanford.db.itrs.DbItr;
 
 public class FileScan extends Op.Leaf {
 	
@@ -25,6 +30,10 @@ public class FileScan extends Op.Leaf {
 
 	public Schema schema() {
 		return schema;
+	}
+	
+	public int cost(CostModel model) { 
+		return model.scan() + (int)(file.length() / model.throughput());
 	}
 
 	private class FileScanner implements DbItr {
