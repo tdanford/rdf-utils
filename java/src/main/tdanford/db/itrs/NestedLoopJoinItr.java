@@ -8,7 +8,7 @@ import tdanford.db.Schema;
 import tdanford.db.Tuple;
 import tdanford.db.ops.Op;
 
-public class InMemoryJoinItr implements DbItr {
+public class NestedLoopJoinItr implements DbItr {
 	
 	private Schema schema;
 	
@@ -20,7 +20,7 @@ public class InMemoryJoinItr implements DbItr {
 	
 	private JoinPredicate predicate;
 	
-	public InMemoryJoinItr(Op leftOp, Op rightOp, JoinPredicate p) {
+	public NestedLoopJoinItr(Op leftOp, Op rightOp, JoinPredicate p) {
 		predicate = p;
 		schema = leftOp.schema().append(rightOp.schema());
 		

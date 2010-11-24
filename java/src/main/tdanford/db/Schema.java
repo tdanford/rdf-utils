@@ -3,8 +3,9 @@ package tdanford.db;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class Schema { 
+public class Schema {  
 	
+	private Key key;
 	private String[] names;
 	private Map<String,Integer> nameIndices;
 	private Class[] types;
@@ -22,6 +23,8 @@ public class Schema {
 			}
 			nameIndices.put(n, i++);
 		}
+
+		key = new Key(names);
 	}
 	
 	public Schema(String[] ns1, Class[] ts1, String[] ns2, Class[] ts2) { 
@@ -49,6 +52,8 @@ public class Schema {
 			}
 			nameIndices.put(n, i++);
 		}
+		
+		key = new Key(names);
 	}
 	
 	public int width() { return names.length; }
@@ -82,4 +87,10 @@ public class Schema {
 		}
 		return new Schema(ns, ts);
 	}
+
+	public String[] columnNames() {
+		return names.clone();
+	}
+	
+	public Key key() { return key; }
 }

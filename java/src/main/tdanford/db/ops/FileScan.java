@@ -7,8 +7,9 @@ import tdanford.db.CostModel;
 import tdanford.db.Schema;
 import tdanford.db.Tuple;
 import tdanford.db.itrs.DbItr;
+import tdanford.db.itrs.FileScanItr;
 
-public class FileScan extends Op.Leaf {
+public class FileScan implements Op {
 	
 	private File file;
 	private Schema schema;
@@ -22,7 +23,7 @@ public class FileScan extends Op.Leaf {
 
 	public DbItr scan() {
 		try {
-			return new FileScanner();
+			return new FileScanItr(file, schema);
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
@@ -35,64 +36,5 @@ public class FileScan extends Op.Leaf {
 	public int cost(CostModel model) { 
 		return model.scan() + (int)(file.length() / model.throughput());
 	}
-
-	private class FileScanner implements DbItr {
-		
-		private BufferedReader lineReader;
-		private Tuple nextTuple;
-		
-		public FileScanner() throws IOException { 
-			lineReader = new BufferedReader(new FileReader(file));
-			readToNextTuple();
-		}
-		
-		private void readToNextTuple() throws IOException { 
-			nextTuple = null;
-			String line = lineReader.readLine();
-			if(line != null) { 
-				String[] array = line.split("|");
-				Tuple t = new Tuple(array, schema);
-				nextTuple = t;
-			}
-		}
-
-		public void reset() { 
-			try { 
-				if(lineReader != null) { lineReader.close(); } 
-				lineReader = new BufferedReader(new FileReader(file));
-				readToNextTuple();
-			} catch(IOException e) { 
-				throw new IllegalStateException(e);
-			}
-		}
-
-		public void close() {
-			try {
-				lineReader.close();
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			}
-			lineReader = null;
-		}
-
-		public boolean hasNext() {
-			return nextTuple != null;
-		}
-
-		public Tuple next() {
-			Tuple t = nextTuple;
-			try {
-				readToNextTuple();
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			}
-			return t;
-		}
-		
-		public Schema schema() { return schema; }
-
-		public void remove() {
-			throw new UnsupportedOperationException();
-		}
-	}
 }
+

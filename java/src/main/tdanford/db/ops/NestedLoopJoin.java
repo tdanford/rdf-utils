@@ -6,14 +6,14 @@ import tdanford.db.CostModel;
 import tdanford.db.JoinPredicate;
 import tdanford.db.Schema;
 import tdanford.db.itrs.DbItr;
-import tdanford.db.itrs.InMemoryJoinItr;
+import tdanford.db.itrs.NestedLoopJoinItr;
 
-public class InMemoryJoin implements Op {
+public class NestedLoopJoin implements Op {
 
 	private Op leftOp, rightOp;
 	private JoinPredicate predicate;
 	
-	public InMemoryJoin(Op left, Op right, JoinPredicate p) { 
+	public NestedLoopJoin(Op left, Op right, JoinPredicate p) { 
 		predicate = p;
 		leftOp = left;
 		rightOp = right;
@@ -38,7 +38,7 @@ public class InMemoryJoin implements Op {
 	}
 	
 	public Schema schema() { return leftOp.schema().append(rightOp.schema()); }
-	public DbItr evalOp() { return new InMemoryJoinItr(leftOp, rightOp, predicate); }
+	public DbItr evalOp() { return new NestedLoopJoinItr(leftOp, rightOp, predicate); }
 
 	public void setSubOp(int i, Op j) {
 		if(i == 0) { 
