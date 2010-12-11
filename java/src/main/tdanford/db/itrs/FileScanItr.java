@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 
 import tdanford.db.Schema;
 import tdanford.db.Tuple;
@@ -12,14 +13,18 @@ public class FileScanItr implements DbItr {
 
 	private File file;
 	private Schema schema;
-	private BufferedReader lineReader;
+	private RandomAccessFile lineReader;
 	private Tuple nextTuple;
 	
 	public FileScanItr(File f, Schema s) throws IOException {
 		schema = s;
 		file = f;
-		lineReader = new BufferedReader(new FileReader(file));
+		lineReader = new RandomAccessFile(file, "r");
 		readToNextTuple();
+	}
+	
+	public long offset() throws IOException { 
+		return lineReader.getFilePointer();
 	}
 	
 	private void readToNextTuple() throws IOException { 
@@ -35,7 +40,7 @@ public class FileScanItr implements DbItr {
 	public void reset() { 
 		try { 
 			if(lineReader != null) { lineReader.close(); } 
-			lineReader = new BufferedReader(new FileReader(file));
+			lineReader = new RandomAccessFile(file, "r");
 			readToNextTuple();
 		} catch(IOException e) { 
 			throw new IllegalStateException(e);
