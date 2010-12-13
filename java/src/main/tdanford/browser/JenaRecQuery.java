@@ -112,4 +112,24 @@ public class JenaRecQuery implements RecQuery {
 		}
 	}
 
+	public RecSet all() {
+		RecSet all = new RecSet();
+		StmtIterator itr = model.listStatements();
+		try { 
+			while(itr.hasNext()) { 
+				Statement stmt = itr.next();
+				all.add(rec(stmt.getSubject()));
+				all.add(rec(stmt.getPredicate()));
+				
+				RDFNode node = stmt.getObject();
+				if(!node.isLiteral()) {  
+					all.add(rec(node));
+				}
+			}
+		} finally { 
+			itr.close();
+		}
+		return all;
+	}
+
 }

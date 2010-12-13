@@ -19,6 +19,8 @@ public class RecSet {
 	
 	public int size() { return recs.size(); }
 	
+	public boolean isEmpty() { return recs.isEmpty(); }
+	
 	public Iterator<Rec> values() { return recs.iterator(); }
 	
 	public Rec choose() { 
@@ -26,8 +28,20 @@ public class RecSet {
 		int k = rand.nextInt(size());
 		Iterator<Rec> rs = recs.iterator();
 		Rec chosen = null;
-		for(; k > 0 && rs.hasNext(); chosen = rs.next()) {}
+		for(; k > 0 && rs.hasNext(); chosen = rs.next(), k--) {}
 		return chosen;
+	}
+	
+	public RecSet union(RecSet set) {
+		TreeSet<Rec> union = new TreeSet<Rec>(recs);
+		union.addAll(set.recs);
+		return new RecSet(union);
+	}
+	
+	public RecSet subtract(RecSet set) { 
+		TreeSet<Rec> subtraction = new TreeSet<Rec>(recs);
+		subtraction.removeAll(set.recs);
+		return new RecSet(subtraction);		
 	}
 	
 	public void addAll(RecSet set) { 
@@ -53,6 +67,122 @@ public class RecSet {
 		}
 		return result;
 	}
+}
+
+interface RecSetTransform { 
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params);
+}
+
+class AllTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		return query.all();
+	} 
+}
+
+class ChooseTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		return new RecSet(input.choose());
+	} 
+}
+
+class LookupTransform implements RecSetTransform {
+
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		RecSet labelSet = params[0];
+		RecSet output = new RecSet();
+		Iterator<Rec> labels = labelSet.values();
+		while(labels.hasNext()) { 
+			Rec label = labels.next();
+			output.addAll(query.labeled(label.value()));
+		}
+		return output;		
+	} 
+}
+
+class ForwardPropsTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		RecSet output = new RecSet();
+		Iterator<Rec> subject = input.values();
+		while(subject.hasNext()) { 
+			output.addAll(query.forwardProperties(subject.next()));
+		}
+		return output;
+	} 
+}
+
+class ReversePropsTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		RecSet output = new RecSet();
+		Iterator<Rec> subject = input.values();
+		while(subject.hasNext()) { 
+			output.addAll(query.backwardProperties(subject.next()));
+		}
+		return output;
+	} 
+}
+
+class ForwardTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		RecSet propSet = params[0];
+		Iterator<Rec> props = propSet.values();
+		
+		RecSet output = new RecSet();
+		while(props.hasNext()) { 
+			Rec prop = props.next();
+			output.addAll(input.forward(query, prop));
+		}
+		
+		return output;
+	} 
+}
+
+class ForwardStarTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		
+		ForwardTransform forward = new ForwardTransform();
+		
+		RecSet output = new RecSet();
+		RecSet nextSet = forward.transform(query, input, params).subtract(output);
+		
+		while(!nextSet.isEmpty()) { 
+			output.addAll(nextSet);
+			nextSet = forward.transform(query, nextSet, params).subtract(output);
+		}
+		
+		return output;
+	} 
+}
+
+class ReverseTransform implements RecSetTransform { 
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) { 
+		RecSet propSet = params[0];
+		Iterator<Rec> props = propSet.values();
+		
+		RecSet output = new RecSet();
+		while(props.hasNext()) { 
+			Rec prop = props.next();
+			output.addAll(input.backward(query, prop));
+		}
+		
+		return output;		
+	}
+}
+
+class ReverseStarTransform implements RecSetTransform {
+	public RecSet transform(RecQuery query, RecSet input, RecSet... params) {
+		
+		ForwardTransform reverse = new ForwardTransform();
+		
+		RecSet output = new RecSet();
+		RecSet nextSet = reverse.transform(query, input, params).subtract(output);
+		
+		while(!nextSet.isEmpty()) { 
+			output.addAll(nextSet);
+			nextSet = reverse.transform(query, nextSet, params).subtract(output);
+		}
+		
+		return output;
+	} 
 }
 
 

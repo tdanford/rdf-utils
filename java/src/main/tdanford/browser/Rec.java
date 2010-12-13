@@ -53,4 +53,7 @@ public class Rec implements Comparable<Rec> {
 	public String value() { return value; }
 	
 	public Type type() { return type; }
+	
+	public boolean isLiteral() { return type.equals(Type.LITERAL); }
+	public boolean isResource() { return type.equals(Type.RESOURCE); }
 }

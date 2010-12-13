@@ -10,5 +10,6 @@ public interface RecQuery {
 	
 	public Rec identified(String id);
 	public RecSet labeled(String lbl);
+	public RecSet all();
 }
 

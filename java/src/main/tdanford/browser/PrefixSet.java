@@ -55,13 +55,17 @@ public class PrefixSet {
 		if(prefixMatch==null) { return expanded; }
 		Set<String> keys = prefixMatch.allValues();
 		
-		String prefixMatchText = prefixMatch.text();
-		int prefixLength = commonPrefixLength(prefixMatchText, expanded);
-		
 		Iterator<String> keyitr = keys.iterator();
-		String key = keyitr.next();
-		
-		return String.format("%s:%s", key, expanded.substring(prefixLength, expanded.length()));
+		while(keyitr.hasNext()) { 
+			String key = keyitr.next();
+			String prefix = key2Prefix.get(key);
+			if(expanded.startsWith(prefix)) { 
+				return String.format("%s:%s",
+						key, 
+						expanded.substring(prefix.length(), expanded.length()));
+			}
+		}
+		return expanded;
 	}
 	
 	public static int commonPrefixLength(String s1, String s2) { 
