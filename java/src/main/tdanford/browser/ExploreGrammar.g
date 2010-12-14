@@ -6,6 +6,8 @@ options {
 
 tokens { 
 	PREFIX = 'prefix' ; 
+	CLEAR = 'clear' ; 
+	
 	FORWARDPROPS = 'f?' ; 
 	REVERSEPROPS = 'r?' ;
 	FORWARDSTAR = 'f*' ; 
@@ -46,7 +48,10 @@ package tdanford.browser;
 package tdanford.browser;
 }
 
-program : WS? command (WS command)* WS? EOF -> command+ ;
+program 
+	: WS? command (WS command)* WS? EOF -> command+
+	| WS? interpreter_command EOF -> interpreter_command  
+	;
 
 command
 	: forward_command
@@ -59,7 +64,7 @@ command
 	| all_command
 	| choose_command
 	| lookup_command 
-	| interpreter_command  
+	| interpreter_command
 	;
 	
 interpreter_command 
@@ -67,28 +72,30 @@ interpreter_command
 	| pretty_print_command
 	| define_command
 	| size_command
-	| prefix_command  
+	| prefix_command
+	| clear_command   
 	; 
 
-forward_command : FORWARD WS name -> ^(FORWARD name) ;
-reverse_command : REVERSE WS name -> ^(REVERSE name) ; 
-forward_star_command : FORWARDSTAR WS name -> ^(FORWARDSTAR name) ;
-reverse_star_command : REVERSESTAR WS name -> ^(REVERSESTAR name) ; 
-forward_props_command : FORWARDPROPS -> ^(FORWARDPROPS) ; 
-reverse_props_command : REVERSEPROPS -> ^(REVERSEPROPS) ; 
+forward_command : FORWARD WS name 			-> ^(FORWARD name) ;
+reverse_command : REVERSE WS name 			-> ^(REVERSE name) ; 
+forward_star_command : FORWARDSTAR WS name 	-> ^(FORWARDSTAR name) ;
+reverse_star_command : REVERSESTAR WS name 	-> ^(REVERSESTAR name) ; 
+forward_props_command : FORWARDPROPS 		-> ^(FORWARDPROPS) ; 
+reverse_props_command : REVERSEPROPS 		-> ^(REVERSEPROPS) ; 
 
-lookup_command : LOOKUP WS typed_literal -> ^(LOOKUP typed_literal)  ;
-eval_command : EVAL WS name -> ^(EVAL name) ;
-all_command : ALL -> ^(ALL) ;
-choose_command : CHOOSE -> ^(CHOOSE) ;  
+lookup_command : LOOKUP WS typed_literal 	-> ^(LOOKUP typed_literal)  ;
+eval_command : EVAL WS name 				-> ^(EVAL name) ;
+all_command : ALL 							-> ^(ALL) ;
+choose_command : CHOOSE 					-> ^(CHOOSE) ;
 
-define_command :  DEFINE WS VARIABLE -> ^(DEFINE VARIABLE) ; 
-list_command :  LIST  -> ^(LIST) ;
-pretty_print_command :  PRETTYPRINT -> ^(PRETTYPRINT) ;
-size_command :  SIZE -> ^(SIZE) ;
-prefix_command : PREFIX WS KEYWORD WS IRI -> ^(PREFIX KEYWORD IRI) ; 
+define_command :  SLASH DEFINE WS VARIABLE 		-> ^(DEFINE VARIABLE) ; 
+list_command :  SLASH LIST  					-> ^(LIST) ;
+pretty_print_command :  SLASH PRETTYPRINT 		-> ^(PRETTYPRINT) ;
+size_command :  SLASH SIZE 						-> ^(SIZE) ;
+prefix_command : SLASH PREFIX WS KEYWORD WS IRI -> ^(PREFIX KEYWORD IRI) ;
+clear_command : SLASH CLEAR 					-> ^(CLEAR) ;  
 
-custom_command : KEYWORD (WS value)* -> ^( KEYWORD value* ) ;
+custom_command : KEYWORD (WS value)* 			-> ^( KEYWORD value* ) ;
 
 eol : (WS? NEWLINE)+ ;
 
@@ -116,7 +123,10 @@ PREFIXED : KEYWORD COLON KEYWORD ;
 
 IRI : LANGLE (~ ( RANGLE | NEWLINE ))+ RANGLE ; 
 
-VARIABLE : DOLLAR KEYWORD ; 
+VARIABLE 
+	: DOLLAR KEYWORD 
+	| DOLLAR INTEGER 
+	; 
 
 LITERAL 
 	: QUOTED 

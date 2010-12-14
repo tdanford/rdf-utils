@@ -43,6 +43,8 @@ public class Explorer {
 		}
 	}
 
+	public static int MAX_HISTORY = 20;
+
 	private RecQuery query;
 	private PrefixSet prefixes;
 	
@@ -79,6 +81,7 @@ public class Explorer {
 		addCommand(new ListCommand());
 		addCommand(new SizeCommand());
 		addCommand(new PrettyPrintCommand());
+		addCommand(new PrefixCommand());
 	}
 	
 	public void addCommand(ExplorerCommand cmd) { 
@@ -86,9 +89,12 @@ public class Explorer {
 	}
 	
 	public RecSet current() { return history.getFirst(); }
-
+	
 	public void setCurrent(RecSet newCurrent) { 
 		history.addFirst(newCurrent);
+		while(history.size() > MAX_HISTORY) { 
+			history.removeLast();
+		}
 	}
 	
 	private ExploreTransform compile(Collection<CommonTree> trees) { 
@@ -281,6 +287,17 @@ public class Explorer {
 		public int getASTType() { return ExploreGrammarParser.DEFINE; } 
 	}
 
+	private class PrefixCommand implements ExplorerCommand { 
+		
+		public ExploreTransform compile(CommonTree cmd) {
+			return new PrefixTransform(
+					cmd.getChild(0).getText(),
+					extractIRI(cmd.getChild(1).getText()));
+		}
+
+		public int getASTType() { return ExploreGrammarParser.PREFIX; } 
+	}
+
 	private class SizeCommand implements ExplorerCommand, ExploreTransform { 
 		
 		public ExploreTransform compile(CommonTree cmd) {
@@ -330,7 +347,7 @@ public class Explorer {
 			return input;
 		}
 	}
-	
+
 	private void prettyPrint(Rec rec) {
 		assert rec != null; 
 		
@@ -386,6 +403,21 @@ public class Explorer {
 
 		public RecSet evaluate(RecSet input) { 
 			namedSets.put(name.value, input);
+			return input;
+		}
+	}
+	
+	private class PrefixTransform implements ExploreTransform {
+		
+		private String prefix, iri;
+
+		public PrefixTransform(String prefix, String iri) {
+			this.prefix = prefix;
+			this.iri = iri;
+		}
+
+		public RecSet evaluate(RecSet input) { 
+			prefixes.addPrefix(prefix, iri);
 			return input;
 		}
 	}
