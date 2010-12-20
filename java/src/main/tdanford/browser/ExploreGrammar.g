@@ -50,7 +50,7 @@ package tdanford.browser;
 
 program 
 	: WS? command (WS command)* WS? EOF -> command+
-	| WS? interpreter_command EOF -> interpreter_command  
+	| WS? interpreter_command WS? EOF 		-> interpreter_command  
 	;
 
 command
@@ -64,7 +64,6 @@ command
 	| all_command
 	| choose_command
 	| lookup_command 
-	| interpreter_command
 	;
 	
 interpreter_command 

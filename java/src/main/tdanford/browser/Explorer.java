@@ -28,7 +28,7 @@ public class Explorer {
 		JenaRecQuery query = new JenaRecQuery(m);
 		Explorer explorer = new Explorer(query);
 		
-		System.out.print(">"); System.out.flush();
+		System.out.print(String.format("(%d) > ", explorer.current().size())); System.out.flush();
 		String line;
 		
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -39,7 +39,7 @@ public class Explorer {
 			} catch (RecognitionException e) {
 				e.printStackTrace(System.err);
 			}
-			System.out.print(">"); System.out.flush();
+			System.out.print(String.format("(%d) > ", explorer.current().size())); System.out.flush();
 		}
 	}
 
@@ -77,11 +77,7 @@ public class Explorer {
 		addCommand(new AllCommand());
 		addCommand(new ChooseCommand());
 
-		addCommand(new DefineCommand());
-		addCommand(new ListCommand());
-		addCommand(new SizeCommand());
-		addCommand(new PrettyPrintCommand());
-		addCommand(new PrefixCommand());
+		addCommand(new InterpreterCommand());
 	}
 	
 	public void addCommand(ExplorerCommand cmd) { 
@@ -276,6 +272,42 @@ public class Explorer {
 		}
 
 		public int getASTType() { return ExploreGrammarParser.EVAL; } 
+	}
+	
+	private class InterpreterCommand implements ExplorerCommand {
+		
+		private DefineCommand define = new DefineCommand();
+		private ListCommand list = new ListCommand();
+		private PrettyPrintCommand prettyPrint = new PrettyPrintCommand();
+		private SizeCommand size = new SizeCommand();
+		private PrefixCommand prefix = new PrefixCommand();
+
+		public ExploreTransform compile(CommonTree cmd) {
+			int type = cmd.getChild(0).getType();
+			switch(type) { 
+			case ExploreGrammarParser.DEFINE:
+				return define.compile(cmd);
+				
+			case ExploreGrammarParser.PRETTYPRINT:
+				return prettyPrint.compile(cmd);
+				
+			case ExploreGrammarParser.PREFIX:
+				return prefix.compile(cmd);
+				
+			case ExploreGrammarParser.LIST:
+				return list.compile(cmd);
+				
+			case ExploreGrammarParser.SIZE:
+				return size.compile(cmd);
+				
+				default: 
+					throw new IllegalArgumentException(String.format(
+							"Unknown interpreter command type %s", 
+							ExploreGrammarParser.tokenNames[type]));
+			}
+		}
+
+		public int getASTType() { return ExploreGrammarParser.DEFINE; } 
 	}
 
 	private class DefineCommand implements ExplorerCommand { 
