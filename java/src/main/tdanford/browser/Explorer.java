@@ -17,13 +17,8 @@ public class Explorer {
 	public static void main(String[] args) throws IOException { 
 		Model m = ModelFactory.createDefaultModel();
 		File f = new File(args[0]);
-		String filename = f.getName().toLowerCase();
-		FileInputStream fis = new FileInputStream(f);
-		String lang = 
-			filename.endsWith(".ttl") ? "TURTLE" : "RDF/XML";
 		
-		m.read(fis, null, lang);
-		fis.close();
+		loadDirIntoModel(m, f);
 		
 		JenaRecQuery query = new JenaRecQuery(m);
 		Explorer explorer = new Explorer(query);
@@ -40,6 +35,54 @@ public class Explorer {
 				e.printStackTrace(System.err);
 			}
 			System.out.print(String.format("(%d) > ", explorer.current().size())); System.out.flush();
+		}
+	}
+	
+	public static void loadFileIntoModel(Model m, File f) throws IOException {
+		System.out.println(String.format("Loading %s", f.getAbsolutePath()));
+		try { 
+			String lang = f.getName().toLowerCase().endsWith(".ttl") ? "TURTLE" : "RDF/XML";
+			FileInputStream fis = new FileInputStream(f);
+			m.read(fis, null, lang);
+			fis.close();
+		} catch(RuntimeException e) { 
+			System.err.println(String.format("\tRuntimeException \"%s\" while processing %s", 
+					e.getMessage(), f.getAbsolutePath()));
+			throw e;
+		} catch(IOException e) { 
+			System.err.println(String.format("\tIOException \"%s\" while processing %s", 
+					e.getMessage(), f.getAbsolutePath()));
+			throw e;
+		}
+		System.out.println("\tFinished.");
+	}
+	
+	public static void loadDirIntoModel(Model m, File dir) throws IOException {
+		
+		if(dir.isFile()) { 
+			loadFileIntoModel(m, dir);
+			return;
+		}
+		
+		if(!dir.exists()) { throw new IllegalArgumentException(dir.getName()); }
+		if(!dir.canRead()) { throw new IllegalArgumentException(dir.getName()); }
+		
+		File[] fs = dir.listFiles(new FilenameFilter() {
+			public boolean accept(File dir, String name) {
+				String lower = name.toLowerCase();
+				File f = new File(dir, name);
+				return f.isDirectory() || lower.endsWith(".ttl") || lower.endsWith(".rdf") || lower.endsWith(".owl");
+			} 
+		});
+		
+		for(File f : fs) { 
+			if(f.isDirectory()) {
+				if(f.canRead()) { 
+					loadDirIntoModel(m, f);
+				}
+			} else {
+				loadFileIntoModel(m, f);
+			}
 		}
 	}
 
@@ -284,6 +327,7 @@ public class Explorer {
 
 		public ExploreTransform compile(CommonTree cmd) {
 			int type = cmd.getChild(0).getType();
+
 			switch(type) { 
 			case ExploreGrammarParser.DEFINE:
 				return define.compile(cmd);
@@ -300,8 +344,8 @@ public class Explorer {
 			case ExploreGrammarParser.SIZE:
 				return size.compile(cmd);
 				
-				default: 
-					throw new IllegalArgumentException(String.format(
+			default: 
+				throw new IllegalArgumentException(String.format(
 							"Unknown interpreter command type %s", 
 							ExploreGrammarParser.tokenNames[type]));
 			}
@@ -339,6 +383,7 @@ public class Explorer {
 		public int getASTType() { return ExploreGrammarParser.SIZE; } 
 
 		public RecSet evaluate(RecSet input) {
+			System.out.println("Evaluating SIZE");
 			System.out.println(input.size());
 			return input;
 		}
